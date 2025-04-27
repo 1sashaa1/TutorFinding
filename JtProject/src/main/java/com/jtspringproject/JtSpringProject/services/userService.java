@@ -18,6 +18,10 @@ public class userService {
 	public List<User> getUsers(){
 		return this.userDao.getAllUser();
 	}
+
+	public User getUser(int id){
+		return this.userDao.getUser(id);
+	}
 	
 	public User addUser(User user) {
 		try {

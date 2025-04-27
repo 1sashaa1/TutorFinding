@@ -29,6 +29,12 @@ public class userDao {
 		List<User>  userList = session.createQuery("from USERS ").list();
         return userList;
     }
+
+	@Transactional
+	public User getUser(int id) {
+		return sessionFactory.getCurrentSession().get(User.class, id);
+	}
+
     
     @Transactional
 	public User saveUser(User user) {
@@ -36,10 +42,7 @@ public class userDao {
 		System.out.println("User added" + user.getId());
         return user;
 	}
-    
-//    public User checkLogin() {
-//    	this.sessionFactory.getCurrentSession().
-//    }
+
     @Transactional
     public User getUser(String username,String password) {
     	Query query = sessionFactory.getCurrentSession().createQuery("from USERS where name = :username");
