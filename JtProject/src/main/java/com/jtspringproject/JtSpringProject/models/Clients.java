@@ -24,14 +24,16 @@ public class Clients implements Serializable {
     @Enumerated(EnumType.STRING)
     private Level level; // Перечисление для уровней
 
-    private String subjects; // JSON или строка с предметами
+    @ManyToOne
+    @JoinColumn(name = "subjects") // имя столбца в таблице tutors
+    private Subject subject;
 
     @Enumerated(EnumType.STRING)
-    private PreferredFormat preferredFormat; // Перечисление для формата
+    private PreferredFormat preferred_format; // Перечисление для формата
 
     private BigDecimal budget; // Бюджет клиента
 
-    private String availableTimes; // JSON или строка с расписанием
+    private String available_times; // JSON или строка с расписанием
 
     public int getId() {
         return id;
@@ -65,20 +67,32 @@ public class Clients implements Serializable {
         this.level = level;
     }
 
-    public String getSubjects() {
-        return subjects;
+    public Subject getSubject() {
+        return subject;
     }
 
-    public void setSubjects(String subjects) {
-        this.subjects = subjects;
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 
-    public PreferredFormat getPreferredFormat() {
-        return preferredFormat;
+    public void setPreferred_format(PreferredFormat preferred_format) {
+        this.preferred_format = preferred_format;
+    }
+
+    public String getAvailable_times() {
+        return available_times;
+    }
+
+    public void setAvailable_times(String available_times) {
+        this.available_times = available_times;
+    }
+
+    public PreferredFormat getPreferred_format() {
+        return preferred_format;
     }
 
     public void setPreferredFormat(PreferredFormat preferredFormat) {
-        this.preferredFormat = preferredFormat;
+        this.preferred_format = preferredFormat;
     }
 
     public BigDecimal getBudget() {
@@ -90,11 +104,11 @@ public class Clients implements Serializable {
     }
 
     public String getAvailableTimes() {
-        return availableTimes;
+        return available_times;
     }
 
     public void setAvailableTimes(String availableTimes) {
-        this.availableTimes = availableTimes;
+        this.available_times = availableTimes;
     }
 
     public enum Level {

@@ -214,7 +214,23 @@
             padding-bottom: 0.375rem;
             color: #6c757d; /* placeholder-style */
         }
+        /* Анимация мерцания */
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
 
+        .blink-annotation {
+            animation: blink 1.5s infinite;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        .profile-link {
+            padding-right: 15px; /* Добавляем место для надписи */
+        }
     </style>
 </head>
 <body>
@@ -229,7 +245,13 @@
                 <h4>Добро пожаловать, ${username}!</h4>
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item"><a class="nav-link" href="client_lessons"><i class="fas fa-list mr-1"></i> Список занятий</a></li>
-                    <li class="nav-item"><a class="nav-link" href="profileDisplay"><i class="fas fa-user mr-1"></i> Профиль</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link profile-link position-relative" href="/clientProfileDisplay">
+                            <i class="fas fa-user mr-1"></i>
+                            Профиль
+                            <span class="profile-warning"></span>
+                        </a>
+                    </li>
                     <li class="nav-item"><a class="nav-link" href="logout"><i class="fas fa-sign-out-alt mr-1"></i> Выйти</a></li>
                 </ul>
             </div>
@@ -346,6 +368,28 @@
             filterTutors();
         }
     });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch('/check-profile')
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                if (data.isEmpty) {
+                    const warningContainer = document.querySelector('.profile-warning');
+                    if (warningContainer) {
+                        warningContainer.innerHTML = `
+                        <span class="blink-annotation position-absolute start-0 bottom-100 mb-1 badge bg-warning text-dark">
+                            Заполните профиль
+                        </span>
+                    `;
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+
 </script>
 </body>
 </html>

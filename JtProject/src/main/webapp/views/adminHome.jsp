@@ -56,7 +56,7 @@
 						<h4 class="card-title">Статистика</h4>
 						<p>---------------------------------------------</p>
 						<p class="card-text">Получите статистику о работе системы здесь.</p>
-						<a href="/admin/categories" class="card-link btn btn-primary">Перейти</a>
+						<a href="/admin/statistics" class="card-link btn btn-primary">Перейти</a>
 
 					</div>
 				</div>
@@ -67,7 +67,7 @@
 						<h4 class="card-title">Преподаватели</h4>
 						<p>---------------------------------------------</p>
 						<p class="card-text">Изменяйте информацию о преподавателях здесь.</p>
-						<a href="/admin/products" class="card-link btn btn-primary">Перейти</a>
+						<a href="/admin/tutors" class="card-link btn btn-primary">Перейти</a>
 
 					</div>
 				</div>

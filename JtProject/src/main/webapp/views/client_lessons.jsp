@@ -39,18 +39,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .upcoming {
-            border-left: 4px solid #0d6efd;
-        }
-
-        .completed {
-            border-left: 4px solid #198754;
-            opacity: 0.8;
-        }
-
-        .cancelled {
-            border-left: 4px solid #dc3545;
-        }
         .filter-card {
             max-height: 0;
             overflow: hidden;
@@ -68,9 +56,9 @@
         .status-badge {
             display: inline-flex;
             align-items: center;
-            padding: 0.5rem 1rem;  /* Увеличенные отступы */
-            margin: 0.25rem;       /* Отступ вокруг бейджа */
-            border-radius: 50px;   /* Овальная форма */
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border-radius: 50px;
             font-size: 0.85rem;
             font-weight: 500;
             letter-spacing: 0.3px;
@@ -79,10 +67,10 @@
         }
 
         .status-indicator {
-            width: 10px;          /* Немного больше кружок */
+            width: 10px;
             height: 10px;
             border-radius: 50%;
-            margin-right: 0.75rem; /* Увеличенный отступ между кружком и текстом */
+            margin-right: 0.75rem;
             position: relative;
         }
 
@@ -92,31 +80,15 @@
             animation: pulse 2s infinite;
         }
 
-        .upcoming {
-            color: #0d6efd;
-            border-left: 3px solid #0d6efd;
-        }
-
-        /* Простые кружки для других статусов */
         .completed .status-indicator {
             background-color: #198754;
         }
 
-        .completed {
-            color: #198754;
-            border-left: 3px solid #198754;
-        }
 
         .cancelled .status-indicator {
             background-color: #dc3545;
         }
 
-        .cancelled {
-            color: #dc3545;
-            border-left: 3px solid #dc3545;
-        }
-
-        /* Анимация пульсации */
         @keyframes pulse {
             0% {
                 transform: scale(0.95);
@@ -145,6 +117,50 @@
         .rating-stars i:hover {
             transform: scale(1.2);
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-container div {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        #chatMessages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .message-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .message-input textarea {
+            flex-grow: 1;
+            resize: none;
+            min-height: 80px;
+        }
+
+        /* Гарантированные стили для модального окна */
+        #chatModal .modal-content {
+            overflow: hidden !important;
+        }
+
+        #chatMessages * {
+            all: initial; /* Сброс наследуемых стилей */
+        }
+
+        #chatMessages div {
+            display: block !important;
+            visibility: visible !important;
+        }
     </style>
 </head>
 <body>
@@ -160,6 +176,10 @@
             <button class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i>Новая запись
             </button>
+            <button class="btn btn-primary">
+                <i class="nav-item"><a class="nav-link" href="/"><i class="fas fa-sign-out-alt mr-1"></i>На главную</a></i>
+            </button>
+
         </div>
     </div>
 
@@ -244,7 +264,7 @@
                                 <div class="row">
                                     <div class="col-md-2 text-center">
                                         <img src="${photos[status.index]}" class="teacher-avatar mb-2" alt="Фото преподавателя">
-                                        <h6 class="mb-0">${lesson.teacher.user.name}</h6>
+                                        <h6 class="mb-0" data-teacher-id="${lesson.teacher.user.id}">${lesson.teacher.user.name}</h6>
                                         <small class="text-muted">Преподаватель</small>
                                     </div>
 
@@ -260,7 +280,7 @@
                                         ${lesson.scheduleSlot.startTime} - ${lesson.scheduleSlot.endTime}
                                             </span>
                                             <span class="badge bg-light text-dark subject-badge">
-                                                <i class="fas fa-coins me-1"></i>${lesson.teacher.rate} руб./час
+                                                <i class="fas fa-coins me-1"></i>${lesson.teacher.rate} $/час
                                              </span>
                                         </div>
 
@@ -382,8 +402,199 @@
     </div>
 </div>
 
+<div class="modal fade" id="chatModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Чат с преподавателем</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="message-input">
+                    <textarea id="messageInput" placeholder="Введите сообщение..."></textarea>
+                    <button id="sendMessageBtn" class="btn btn-primary">Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Глобальные переменные для текущего чата
+    let currentChatId = null;
+    let currentTeacherId = null;
+    let currentUserId = ${currentUser.id};
+    let messageCheckInterval = null;
+
+    // Обработчик открытия чата
+    document.querySelectorAll('.btn-outline-primary.btn-sm').forEach(btn => {
+        if (btn.innerHTML.includes('fa-comment')) {
+            btn.addEventListener('click', async function() {
+                const lessonCard = this.closest('.lesson-card');
+                const teacherNameElement = lessonCard.querySelector('h6');
+                if (!teacherNameElement) {
+                    console.error('Элемент с именем преподавателя не найден!');
+                    return;
+                }
+
+                const teacherId = teacherNameElement.dataset.teacherId;
+                console.log('ID преподавателя:', teacherId); // Для отладки
+
+                const response = await fetch(`/api/chat/getChatId/`+ currentUserId +`/`+ teacherId);
+                if (!response.ok) throw new Error('Ошибка получения chatId');
+
+                currentChatId = await response.json();
+                currentTeacherId = teacherId;
+
+                await loadChatMessages();
+
+                const chatModalEl = document.getElementById('chatModal');
+                const chatModal = new bootstrap.Modal(chatModalEl);
+
+                chatModalEl.addEventListener('shown.bs.modal', function() {
+                    console.log('Modal fully shown');
+                    loadChatMessages();
+                });
+
+                chatModal.show();
+                setTimeout(() => {
+                    console.log('Modal classes:', document.getElementById('chatModal').className);
+                    console.log('Display style:', document.getElementById('chatModal').style.display);
+                }, 500);
+                startMessageChecking();
+            });
+        }
+    });
+
+    async function loadChatMessages() {
+        if (!currentChatId) {
+            console.error('Chat ID не установлен');
+            return;
+        }
+        try {
+            const response = await fetch(`/api/chat/messages/` + currentChatId);
+            if (!response.ok) throw new Error('Ошибка загрузки');
+
+            const messages = await response.json();
+            console.log(messages)
+            if (!Array.isArray(messages)) {
+                throw new Error('Некорректный формат сообщений');
+            }
+            renderMessages(messages);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Не удалось загрузить сообщения');
+        }
+    }
+
+    function renderMessages(messages) {
+        const chatDiv = document.getElementById('chatMessages');
+        if (!chatDiv) return;
+
+        // Очистка чата
+        chatDiv.innerHTML = '';
+
+        if (!messages?.length) {
+            chatDiv.textContent = 'Нет сообщений';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const messageEl = document.createElement('div');
+
+            const messageText = msg.message ? String(msg.message) : '';
+
+            const header = document.createElement('div');
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            header.style.marginBottom = '5px';
+            header.style.fontSize = '0.8em';
+
+            const senderSpan = document.createElement('span');
+            senderSpan.style.fontWeight = '500';
+            senderSpan.textContent = msg.senderId === currentUserId ? 'Вы' : msg.senderName || 'Преподаватель';
+
+            const timeSpan = document.createElement('span');
+            timeSpan.style.opacity = '0.7';
+            timeSpan.textContent = msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+
+            header.appendChild(senderSpan);
+            header.appendChild(timeSpan);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.style.fontSize = '1em';
+            contentDiv.style.lineHeight = '1.4';
+            contentDiv.textContent = messageText; // Используем textContent
+
+            messageEl.appendChild(header);
+            messageEl.appendChild(contentDiv);
+
+            messageEl.style.maxWidth = '80%';
+            messageEl.style.padding = '10px 15px';
+            messageEl.style.borderRadius = '18px';
+            messageEl.style.backgroundColor = msg.senderId === currentUserId ? '#007bff' : '#e9ecef';
+            messageEl.style.color = msg.senderId === currentUserId ? 'white' : 'black';
+            messageEl.style.alignSelf = msg.senderId === currentUserId ? 'flex-end' : 'flex-start';
+            messageEl.style.marginBottom = '10px';
+
+            chatDiv.appendChild(messageEl);
+        });
+
+        // Прокрутка вниз
+        setTimeout(() => {
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }, 100);
+    }
+
+
+    document.getElementById('sendMessageBtn').addEventListener('click', async () => {
+        const textarea = document.getElementById('messageInput');
+        const message = textarea.value.trim();
+
+        if (!message) return;
+
+        try {
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: currentChatId,
+                    senderId: currentUserId,
+                    receiverId: currentTeacherId,
+                    message: message
+                })
+            });
+
+            if (response.ok) {
+                textarea.value = '';
+                await loadChatMessages();
+            }
+        } catch (error) {
+            console.error('Ошибка отправки:', error);
+        }
+    });
+
+    // Проверка новых сообщений каждые 3 секунды
+    function startMessageChecking() {
+        if (messageCheckInterval) clearInterval(messageCheckInterval);
+        loadChatMessages().catch(console.error);
+        messageCheckInterval = setInterval(loadChatMessages, 3000);
+    }
+
+    // Остановка проверки при закрытии модального окна
+    document.getElementById('chatModal').addEventListener('hidden.bs.modal', function() {
+        if (messageCheckInterval) clearInterval(messageCheckInterval);
+    });
+
+    // Отправка по Enter
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('sendMessageBtn').click();
+        }
+    });
+
     // Активация всплывающих подсказок
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -420,18 +631,22 @@
     });
 
     function initModals() {
-        // Обработка всех кнопок "Отменить"
         document.querySelectorAll('[data-bs-target^="#cancelLessonModal"]').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const modalId = this.getAttribute('data-bs-target');
-                const modal = new bootstrap.Modal(document.querySelector(modalId));
+                const modalElement = document.querySelector(modalId);
+                const modal = new bootstrap.Modal(modalElement);
                 modal.show();
 
-                // Находим кнопку подтверждения в модальном окне
-                const confirmBtn = document.querySelector(`${modalId} .btn-danger`);
+                const lessonId = modalId.replace('#cancelLessonModal', '');
+                console.log(lessonId)
+                const confirmBtn = modalElement.querySelector('.btn-danger');
 
-                confirmBtn.addEventListener('click', () => {
-                    const lessonId = modalId.replace('#cancelLessonModal', '');
+                // Удаляем старые обработчики, если есть
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+                newConfirmBtn.addEventListener('click', () => {
                     cancelLesson(lessonId);
                     modal.hide();
                 });
@@ -439,9 +654,8 @@
         });
     }
 
-    // AJAX-запрос на отмену занятия
     function cancelLesson(lessonId) {
-        fetch(`/api/lessons/${lessonId}/cancel`, {
+        fetch('/lessons/' + lessonId + '/cancel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
         })
@@ -584,7 +798,6 @@
             success: function(response) {
                 alert('Отзыв успешно отправлен!');
                 $('#reviewModal' + lessonId).modal('hide');
-                // Обновление интерфейса
             },
             error: function(xhr) {
                 alert('Ошибка: ' + xhr.responseText);

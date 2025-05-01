@@ -19,7 +19,7 @@ import com.jtspringproject.JtSpringProject.models.User;
 public class userDao {
 	@Autowired
     private SessionFactory sessionFactory;
-	
+
 	public void setSessionFactory(SessionFactory sf) {
         this.sessionFactory = sf;
     }
@@ -41,6 +41,11 @@ public class userDao {
 		this.sessionFactory.getCurrentSession().saveOrUpdate(user);
 		System.out.println("User added" + user.getId());
         return user;
+	}
+
+	@Transactional
+	public void deleteUser(User user) {
+		sessionFactory.getCurrentSession().delete(user);
 	}
 
     @Transactional

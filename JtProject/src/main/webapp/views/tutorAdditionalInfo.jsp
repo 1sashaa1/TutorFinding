@@ -264,7 +264,7 @@
 
                             <p><strong><i class="fas fa-book-open mr-2"></i>Предметы:</strong> ${tutor.subject}</p>
 
-                            <p><strong><i class="fas fa-coins mr-2"></i>Ставка:</strong> ${tutor.rate} руб./час</p>
+                            <p><strong><i class="fas fa-coins mr-2"></i>Ставка:</strong> ${tutor.rate} $/час</p>
 
                             <p><strong><i class="fas fa-briefcase mr-2"></i>Опыт
                                 преподавания:</strong> ${tutor.experience} год</p>
@@ -398,7 +398,7 @@
                             <p><strong>Дата:</strong> <span id="bookingDate"></span></p>
                             <p><strong>Время:</strong> <span id="bookingTime"></span></p>
                             <p><strong>Предмет:</strong> ${tutor.subject}</p>
-                            <p><strong>Ставка:</strong> ${tutor.rate} руб./час</p>
+                            <p><strong>Ставка:</strong> ${tutor.rate} $/час</p>
                         </div>
                     </div>
                     <div class="modal-footer">

@@ -4,35 +4,42 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.jtspringproject.JtSpringProject.dto.userDto;
+import com.jtspringproject.JtSpringProject.dto.userpnDto;
+import com.jtspringproject.JtSpringProject.services.clientService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
-import com.jtspringproject.JtSpringProject.models.Review;
 import com.jtspringproject.JtSpringProject.models.User;
 import com.jtspringproject.JtSpringProject.services.userService;
+import com.jtspringproject.JtSpringProject.models.Roles;
+
+import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
 	private final userService userService;
+	private final com.jtspringproject.JtSpringProject.services.clientService clientService;
 
 	@Autowired
-	public AdminController(userService userService) {
+	public AdminController(userService userService, clientService clientService) {
 		this.userService = userService;
+		this.clientService = clientService;
 	}
 	
 	@GetMapping("/index")
@@ -58,25 +65,92 @@ public class AdminController {
 	    mv.addObject("admin", authentication.getName());
 	    return mv;
 	}
-
-	
-	@PostMapping("products")
-	public String postproduct() {
-		return "redirect:/admin/categories";
-	}
 	
 	@GetMapping("clients")
 	public ModelAndView getCustomerDetail() {
-		ModelAndView mView = new ModelAndView("displayClients");
+		ModelAndView mView = new ModelAndView("displayClientsForAdmin");
 		List<User> users = this.userService.getUsers();
+		System.out.println("users: "+ users);
 		List<User> clients = users.stream()
-				.filter(user -> "CLIENT".equals(user.getRole()))
+				.filter(user -> Roles.CLIENT.equals(user.getRole()))
 				.collect(Collectors.toList());
-
+		System.out.println("clients: "+ clients);
 		mView.addObject("clients", clients);
 		return mView;
 	}
-	
+
+
+	@GetMapping("/getClients")
+	@ResponseBody
+	public Map<String, Object> getClientsData() {
+		List<User> users = this.userService.getUsers();
+		System.out.println("users: "+ users);
+		List<User> clients = users.stream()
+				.filter(user -> Roles.CLIENT.equals(user.getRole()))
+				.collect(Collectors.toList());
+		System.out.println("clients: "+ clients);
+		List<userDto> clientsRes = clients.stream()
+				.map(user -> new userDto(
+                        (long) user.getId(),
+						user.getName(),
+						user.getEmail(),
+						user.getCreated_at()
+				))
+				.collect(Collectors.toList());
+		return Map.of(
+				"success", true,
+				"clients", clientsRes,
+				"count", clientsRes.size()
+		);
+	}
+
+	@DeleteMapping("/deleteUser/{id}")
+	public ResponseEntity<?> deleteUser(@PathVariable("id") int id) {
+		try {
+			System.out.println("id: " + id);
+			userService.deleteUser(id);
+			return ResponseEntity.ok().body(Collections.singletonMap("message", "Клиент успешно удален"));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Collections.singletonMap("error", e.getMessage()));
+		}
+	}
+
+	@GetMapping("/api/clients/{id}")
+	@ResponseBody
+	public ResponseEntity<?> getClient(@PathVariable("id") Long id) {
+		try {
+			System.out.println("Клиент для редактирования с id " + id);
+			User client = userService.getUserById(Math.toIntExact(id));
+			System.out.println("Клиент для редактирования " + client);
+			return ResponseEntity.ok(client);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("error", e.getMessage()));
+		}
+	}
+
+	@PutMapping("/api/clients/{id}")
+	@ResponseBody
+	public ResponseEntity<?> updateClient(
+			@PathVariable Long id,
+			@Valid @RequestBody userpnDto updateDto) {
+
+		try {
+			System.out.println("Клиент на ред " + updateDto.getName());
+			User updatedClient = userService.updateClientPartial(id, updateDto);
+			System.out.println("Клиент отредактирован " + updatedClient);
+			return ResponseEntity.ok(Map.of(
+					"success", true,
+					"message", "Данные клиента обновлены"
+			));
+		} catch (EntityNotFoundException e) {
+			return ResponseEntity.notFound().build();
+		} catch (Exception e) {
+			return ResponseEntity.internalServerError()
+					.body(Map.of("error", e.getMessage()));
+		}
+	}
 	
 	@GetMapping("profileDisplay")
 	public String profileDisplay(Model model) {

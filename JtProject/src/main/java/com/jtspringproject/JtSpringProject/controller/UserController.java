@@ -1,18 +1,12 @@
 package com.jtspringproject.JtSpringProject.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jtspringproject.JtSpringProject.models.*;
-import java.io.Console;
+import java.math.BigDecimal;
 import java.security.Principal;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
 
 import com.jtspringproject.JtSpringProject.services.*;
@@ -26,7 +20,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import com.jtspringproject.JtSpringProject.services.subjectService;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class UserController{
@@ -37,19 +30,23 @@ public class UserController{
 	private final lessonService lessonService;
 	private final scheduleService scheduleSlotService;
 	private final subjectService subjectService;
+	private final clientService clientService;
+	private  final paymentService paymentService;
 
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-	public UserController(userService userService, tutorService productService, com.jtspringproject.JtSpringProject.services.tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.lessonService lessonService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService) {
+	public UserController(userService userService, tutorService productService, com.jtspringproject.JtSpringProject.services.tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.lessonService lessonService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, com.jtspringproject.JtSpringProject.services.clientService clientService, com.jtspringproject.JtSpringProject.services.paymentService paymentService) {
 		this.userService = userService;
         this.tutorService = tutorService;
         this.scheduleService = scheduleService;
         this.lessonService = lessonService;
         this.scheduleSlotService = scheduleSlotService;
         this.subjectService = subjectService;
+        this.clientService = clientService;
+        this.paymentService = paymentService;
     }
 
 
@@ -57,12 +54,6 @@ public class UserController{
 	public String registerUser()
 	{
 		return "register";
-	}
-
-	@GetMapping("/buy")
-	public String buy()
-	{
-		return "buy";
 	}
 
 	@GetMapping("/login")
@@ -104,23 +95,6 @@ public class UserController{
 		return mView;
 	}
 
-
-	@GetMapping("/user/products")
-	public ModelAndView getproduct() {
-
-		ModelAndView mView = new ModelAndView("uproduct");
-
-		List<Tutors> products = this.tutorService.getTutors();
-
-		if(products.isEmpty()) {
-			mView.addObject("msg","No products are available");
-		}else {
-			mView.addObject("products",products);
-		}
-
-		return mView;
-	}
-
 	@RequestMapping(value = "newuserregister", method = RequestMethod.POST)
 	public ModelAndView newUserRegister(@ModelAttribute User user, @RequestParam String role) {
 		boolean exists = this.userService.checkUserExists(user.getUsername());
@@ -137,6 +111,11 @@ public class UserController{
 			}
 			user.setCreated_at(LocalDateTime.now());
 			this.userService.addUser(user);
+			if (user.getRole() == Roles.CLIENT){
+				Clients client = new Clients();
+				client.setUser(user);
+				clientService.addClient(client);
+			}
 			ModelAndView mView = new ModelAndView("register");
 			mView.addObject("msg", user.getUsername() + " зарегистрирован успешно.");
 			System.out.println("Новый пользователь создан: " + user.getUsername());
@@ -266,7 +245,6 @@ public class UserController{
 									Principal principal) {
 		try {
 			String username = principal.getName();
-			System.out.println("username" + username);
 			User user = userService.getUserByUsername(username);
 
 			if (user == null) {
@@ -274,20 +252,48 @@ public class UserController{
 						.body(Map.of("error", "Пользователь не найден"));
 			}
 
+			// Получаем клиента (добавленная проверка)
+			Clients client = clientService.findByUser(user)
+					.orElseThrow(() -> new EntityNotFoundException("Профиль клиента не найден"));
+
 			ScheduleSlot slot = scheduleService.getSlotById(slotId);
 			if (slot == null || !slot.isAvailable()) {
 				return ResponseEntity.badRequest()
 						.body(Map.of("error", "Выбранный слот недоступен"));
 			}
 
+			BigDecimal lessonPrice = slot.getTutor().getRate();
+
+			// Проверяем баланс клиента
+			if (client.getBudget() == null || client.getBudget().compareTo(lessonPrice) < 0) {
+				return ResponseEntity.badRequest()
+						.body(Map.of("error", "Недостаточно средств на балансе"));
+			}
+
+			// Создаем занятие
 			Lesson lesson = new Lesson();
-			lesson.setClient(user.getClients());
+			lesson.setClient(client);
 			lesson.setTeacher(slot.getTutor());
 			lesson.setScheduleSlot(slot);
 			lesson.setSubject(slot.getTutor().getSubject());
 			lesson.setStatus(LessonStatus.SCHEDULED);
 
-			lessonService.addLesson(lesson);
+			lesson = lessonService.addLesson(lesson);
+
+			client.setBudget(client.getBudget().subtract(lessonPrice));
+			clientService.addClient(client);
+
+			// Создаем запись о платеже
+			Payment payment = new Payment();
+			payment.setClient(client);
+			payment.setLesson(lesson);
+			payment.setAmount(lessonPrice.negate()); // Отрицательная сумма для списания
+			payment.setPaymentDate(LocalDate.now());
+			payment.setStatus(PaymentStatus.COMPLETED);
+
+			paymentService.savePayment(payment);
+
+			// Обновляем слот
 			slot.setAvailable(false);
 			scheduleService.saveSlot(slot);
 
@@ -296,6 +302,9 @@ public class UserController{
 					"redirect", "/client_lessons"
 			));
 
+		} catch (EntityNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(Map.of("error", e.getMessage()));
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(Map.of("error", "Ошибка при записи: " + e.getMessage()));
@@ -311,6 +320,7 @@ public class UserController{
 		System.out.println("Предметы: " + subjects);
 		model.addAttribute("allSubjects", subjects);
 		model.addAttribute("lessons", lessons);
+		model.addAttribute("currentUser", user);
 		List<String> photos = new ArrayList<>();
 		for (Lesson lesson : lessons) {
 			if (lesson.getTeacher().getPhoto() != null) {
@@ -322,5 +332,35 @@ public class UserController{
 		}
 		model.addAttribute("photos", photos); // Добавляем список строк с фото в модель
 		return "client_lessons";
+	}
+
+	@PostMapping("/createClient")
+	@ResponseBody
+	public ResponseEntity<?> createClient(@RequestBody User user) {
+		try {
+			user.setCreated_at(LocalDateTime.now());
+			user.setRole(Roles.CLIENT);
+			user.setPassword("1111");
+			if (user.getName() == null || user.getName().isEmpty()) {
+				return ResponseEntity.badRequest().body(Map.of(
+						"success", false,
+						"message", "Имя клиента обязательно"
+				));
+			}
+
+			User newClient = userService.addUser(user);
+
+			return ResponseEntity.ok(Map.of(
+					"success", true,
+					"message", "Клиент создан",
+					"client", newClient
+			));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of(
+							"success", false,
+							"message", e.getMessage()
+					));
+		}
 	}
 	}

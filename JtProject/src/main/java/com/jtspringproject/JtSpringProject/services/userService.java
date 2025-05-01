@@ -1,5 +1,6 @@
 package com.jtspringproject.JtSpringProject.services;
 
+import com.jtspringproject.JtSpringProject.dto.userpnDto;
 import com.jtspringproject.JtSpringProject.models.*;
 import java.util.List;
 
@@ -9,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import com.jtspringproject.JtSpringProject.dao.userDao;
 import com.jtspringproject.JtSpringProject.models.User;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.persistence.EntityNotFoundException;
 
 @Service
 public class userService {
@@ -27,8 +31,30 @@ public class userService {
 		try {
 			return this.userDao.saveUser(user);
 		} catch (DataIntegrityViolationException e) {
-			// handle unique constraint violation, e.g., by throwing a custom exception
 			throw new RuntimeException("Add user error");
+		}
+	}
+
+	public User updateClientPartial(Long id, userpnDto updateDto){
+		User client = userDao.getUserById(Math.toIntExact(id));
+
+		// Обновляем только разрешенные поля
+		if (updateDto.getName() != null) {
+			client.setName(updateDto.getName());
+		}
+		if (updateDto.getEmail() != null) {
+			client.setEmail(updateDto.getEmail());
+		}
+
+		return userDao.saveUser(client);
+	}
+
+	public void deleteUser(int id) {
+		try {
+			User user = userDao.getUser(id);
+			userDao.deleteUser(user);
+		} catch (DataIntegrityViolationException e) {
+			throw new RuntimeException("Delete user error: " + e.getMessage(), e);
 		}
 	}
 	

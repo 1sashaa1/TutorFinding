@@ -37,4 +37,8 @@ public class lessonService {
     public List<Lesson> findClientLessons(int id){
         return lessonDao.findClientLessons(id);
     }
+
+    public boolean cancelLesson(int id){
+        return  this.lessonDao.cancelLesson(id);
+    }
 }

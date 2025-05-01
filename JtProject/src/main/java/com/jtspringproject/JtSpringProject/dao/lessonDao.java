@@ -4,12 +4,15 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
+import com.jtspringproject.JtSpringProject.models.Clients;
 import com.jtspringproject.JtSpringProject.models.Lesson;
+import com.jtspringproject.JtSpringProject.models.LessonStatus;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -70,6 +73,24 @@ public class lessonDao{
                         Lesson.class)
                 .setParameter("clientId", id)
                 .list();
+    }
+
+    @Transactional
+    public boolean cancelLesson(int lessonId) {
+        Session session = sessionFactory.getCurrentSession();
+        Lesson lesson = session.get(Lesson.class, lessonId);
+
+        if (lesson == null || lesson.getStatus() == LessonStatus.CANCELED) {
+            return false;
+        }
+
+        lesson.setStatus(LessonStatus.CANCELED);
+
+        BigDecimal rate = lesson.getTeacher().getRate();
+        Clients client = lesson.getClient();
+        client.setBudget(client.getBudget().add(rate));
+
+        return true;
     }
 
 

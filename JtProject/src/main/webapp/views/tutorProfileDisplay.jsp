@@ -53,7 +53,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label><strong>Ставка (руб/час):</strong></label>
+                    <label><strong>Ставка ($/час):</strong></label>
                     <input type="number" name="rate" class="form-control editable" value="${tutor.rate}" readonly>
                 </div>
                 <div class="form-group">
@@ -93,7 +93,7 @@
                                            value="${slot.end_time}" ${slot.available ? '' : 'readonly'}>
                                 </td>
                                 <td>
-                                        ${slot.available ? 'Занят' : 'Свободен'}
+                                        ${slot.available ? 'Свободен' : 'Занят'}
                                 </td>
                                 <td>
                                     <c:if test="${slot.available}">
