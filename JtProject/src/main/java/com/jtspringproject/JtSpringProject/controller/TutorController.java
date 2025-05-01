@@ -4,14 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jtspringproject.JtSpringProject.models.*;
-import com.jtspringproject.JtSpringProject.services.tutorService;
-import com.jtspringproject.JtSpringProject.services.userService;
-import com.jtspringproject.JtSpringProject.services.scheduleService;
-import com.jtspringproject.JtSpringProject.services.subjectService;
+import com.jtspringproject.JtSpringProject.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -23,14 +21,14 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 public class TutorController {
@@ -40,40 +38,45 @@ public class TutorController {
     private final scheduleService scheduleService;
     private final scheduleService scheduleSlotService;
     private final subjectService subjectService;
+    private final reviewService reviewService;
+    private final lessonService lessonService;
 
     @Autowired
-    public TutorController(userService userService, tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService) {
+    public TutorController(userService userService, tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, com.jtspringproject.JtSpringProject.services.reviewService reviewService, lessonService lessonService) {
         this.tutorService = tutorService;
         this.userService = userService;
         this.scheduleService = scheduleService;
         this.scheduleSlotService = scheduleSlotService;
         this.subjectService = subjectService;
+        this.reviewService = reviewService;
+        this.lessonService = lessonService;
     }
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping("/tutor_inform")
     public String showTutorRegistrationForm(Model model) {
-        // Получаем имя текущего пользователя
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        // Получаем объект User по имени (или email) текущего пользователя
         User currentUser = userService.getUserByUsername(username);
 
         if (currentUser != null) {
-            int userId = currentUser.getId(); // Получаем id текущего пользователя
+            int userId = currentUser.getId();
 
-            // Получаем данные преподавателя по id
             Tutors tutor = tutorService.getTutorId(userId);
-
+            int totalStudents = lessonService.countUniqueStudentsByTutor(tutor.getId());
+            double rating = reviewService.getAverageTeacherRating(tutor.getId());
             if (tutor != null) {
                 model.addAttribute("tutor", tutor);
                 model.addAttribute("username", username);
-                return "tutor_dashboard"; // Если преподаватель найден
+                model.addAttribute("totalStudents", totalStudents);
+                model.addAttribute("rating", String.format("%.1f", rating));
+                return "tutor_dashboard";
             } else {
-                return "tutor_inform"; // Если преподаватель не найден
+                return "tutor_inform";
             }
         } else {
             // Если текущий пользователь не найден
-            return "redirect:/login"; // Перенаправляем на страницу логина
+            return "redirect:/login";
         }
     }
 
@@ -95,6 +98,11 @@ public class TutorController {
                 tutors.setUser(user);  // Устанавливаем пользователя в Tutors
                 tutorService.addTutor(tutors);  // Сохраняем Tutors
                 user.setTutor(tutors);  // Устанавливаем Tutors в User
+
+                // 🔐 ШИФРОВАНИЕ ПАРОЛЯ
+                String encodedPassword = passwordEncoder.encode(user.getPassword());
+                user.setPassword(encodedPassword);
+
                 userService.addUser(user);  // Обновляем User
 
                 ModelAndView mView = new ModelAndView("tutor_dashboard");
@@ -273,5 +281,83 @@ public class TutorController {
                 .contentType(MediaType.IMAGE_JPEG) // Укажи нужный формат (JPEG, PNG и т. д.)
                 .body(tutor.getPhoto()); // Отправляем бинарные данные
     }
+
+    @GetMapping("/tutor/schedule")
+    public String showTutorSchedule(Model model) {
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User currentUser = userService.getUserByUsername(username);
+
+        if (currentUser != null) {
+            int userId = currentUser.getId();
+
+            Tutors tutor = tutorService.getTutorId(userId);
+            List<Lesson> allLessons = lessonService.getLessons();
+            List<Lesson> tutorLessons = allLessons.stream()
+                    .filter(lesson -> lesson.getTeacher().getId() == tutor.getId())
+                    .collect(Collectors.toList());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+            List<String> formattedDates = tutorLessons.stream()
+                    .map(lesson -> {
+                        // Преобразуем LocalDate или LocalDateTime в строку
+                        return lesson.getScheduleSlot().getDate().format(formatter);
+                    })
+                    .collect(Collectors.toList());
+
+            model.addAttribute("formattedDate", formattedDates);
+            if (tutor != null) {
+                model.addAttribute("tutor", tutor);
+                model.addAttribute("username", username);
+                model.addAttribute("lessons", tutorLessons);
+                model.addAttribute("canceledLessonsCount", tutorLessons.stream()
+                        .filter(l -> l.getStatus().equals(LessonStatus.CANCELED))
+                        .count());
+                model.addAttribute("scheduledLessonsCount", tutorLessons.stream()
+                        .filter(l -> l.getStatus().equals(LessonStatus.SCHEDULED))
+                        .count());
+                model.addAttribute("completedLessonsCount", tutorLessons.stream()
+                        .filter(l -> l.getStatus().equals(LessonStatus.COMPLETED))
+                        .count());
+
+                return "tutor_schedule";
+            } else {
+                return "tutor_dashboard";
+            }
+        } else {
+            return "redirect:/login";
+        }
+    }
+    @PostMapping("/tutor/lessons/{id}/complete")
+    @ResponseBody
+    public Map<String, Object> completeLesson(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            lessonService.completeLesson(Math.toIntExact(id));
+            response.put("success", true);
+            response.put("redirectUrl", "/tutor/schedule");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("redirectUrl", "/tutor/schedule");
+        }
+        return response;
+    }
+
+    @PostMapping("/tutor/lessons/{id}/cancel")
+    @ResponseBody
+    public Map<String, Object> cancelLesson(@PathVariable Long id, @RequestBody Map<String, String> data) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String reason = data.get("reason");
+            lessonService.cancelLesson(Math.toIntExact(id));
+            response.put("redirectUrl", "/tutor/schedule");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("redirectUrl", "/tutor/schedule");
+        }
+        return response;
+    }
+
 }
 

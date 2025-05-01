@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.jtspringproject.JtSpringProject.dao.userDao;
@@ -18,8 +19,14 @@ import javax.persistence.EntityNotFoundException;
 public class userService {
 	@Autowired
 	private userDao userDao;
-	
-	public List<User> getUsers(){
+	@Autowired
+	private final PasswordEncoder passwordEncoder;
+
+    public userService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public List<User> getUsers(){
 		return this.userDao.getAllUser();
 	}
 

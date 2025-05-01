@@ -83,9 +83,18 @@
 					</div>
 				</div>
 			</div>
-			
-			
-			
+			<div class="col-sm-3 pt-4">
+				<div class="card" style="background-color: white;">
+					<div class="card-body text-center">
+						<h4 class="card-title">Резервное копирование</h4>
+						<p>---------------------------------------------</p>
+						<p class="card-text">Создайте резервную копию базы данных.</p>
+						<form action="/admin/backup" method="post">
+							<button type="submit" class="btn btn-warning">Создать копию</button>
+						</form>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 

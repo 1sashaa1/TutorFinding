@@ -130,14 +130,8 @@ public class SecurityConfiguration {
 			return org.springframework.security.core.userdetails.User
 					.withUsername(username)
 					.password(user.getPassword())
-					.passwordEncoder(passwordEncoder()::encode)
 					.roles(role)
 					.build();
 		};
-	}
-
-	@Bean
-	PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
 	}
 }

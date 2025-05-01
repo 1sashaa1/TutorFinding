@@ -33,7 +33,6 @@ public class UserController{
 	private final clientService clientService;
 	private  final paymentService paymentService;
 
-
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
@@ -98,8 +97,12 @@ public class UserController{
 	@RequestMapping(value = "newuserregister", method = RequestMethod.POST)
 	public ModelAndView newUserRegister(@ModelAttribute User user, @RequestParam String role) {
 		boolean exists = this.userService.checkUserExists(user.getUsername());
-
-		if (!exists) {
+		if (exists) {
+			ModelAndView mView = new ModelAndView("register");
+			mView.addObject("msg", "Пользователь уже существует.");
+			return mView;
+		}
+		else if (!exists) {
 			System.out.println(user.getEmail());
 			try {
 				user.setRole(Roles.valueOf(role));
@@ -110,6 +113,11 @@ public class UserController{
 				return mView;
 			}
 			user.setCreated_at(LocalDateTime.now());
+
+			// 🔐
+
+			String encodedPassword = passwordEncoder.encode(user.getPassword());
+			user.setPassword(encodedPassword);
 			this.userService.addUser(user);
 			if (user.getRole() == Roles.CLIENT){
 				Clients client = new Clients();
@@ -139,7 +147,6 @@ public class UserController{
 			model.addAttribute("userid", user.getId());
 			model.addAttribute("username", user.getUsername());
 			model.addAttribute("email", user.getEmail());
-			model.addAttribute("password", user.getPassword()); 
 			model.addAttribute("dataofregistration", user.getCreated_at());
 	    } else {
 	    	model.addAttribute("msg", "User not found");
@@ -195,9 +202,9 @@ public class UserController{
 		if (user != null) {
 			user.setUsername(username);
 			user.setEmail(email);
-			user.setPassword(passwordEncoder.encode(password));
+			String hashedPassword = passwordEncoder.encode(password);
+			user.setPassword(hashedPassword);
 
-			// Сохраняем обновленного пользователя через сервис
 			userService.addUser(user);
 		}
 
@@ -341,6 +348,11 @@ public class UserController{
 			user.setCreated_at(LocalDateTime.now());
 			user.setRole(Roles.CLIENT);
 			user.setPassword("1111");
+
+			// 🔐 ШИФРОВАНИЕ ПАРОЛЯ
+			String encodedPassword = passwordEncoder.encode(user.getPassword());
+			user.setPassword(encodedPassword);
+
 			if (user.getName() == null || user.getName().isEmpty()) {
 				return ResponseEntity.badRequest().body(Map.of(
 						"success", false,

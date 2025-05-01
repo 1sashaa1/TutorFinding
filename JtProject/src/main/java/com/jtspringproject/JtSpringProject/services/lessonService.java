@@ -41,4 +41,10 @@ public class lessonService {
     public boolean cancelLesson(int id){
         return  this.lessonDao.cancelLesson(id);
     }
+    public boolean completeLesson(int id){
+        return  this.lessonDao.completeLesson(id);
+    }
+    public int countUniqueStudentsByTutor(int tutorId) {
+        return this.lessonDao.countDistinctClientsByTutorId(tutorId);
+    }
 }

@@ -17,8 +17,8 @@
 <br>
 <div class="container">
     <div class="col-sm-6">
-        <h3 style="margin-top: 10px">Sign Up Now</h3>
-        <p>Please fill out this to register</p>
+        <h3 style="margin-top: 10px">Зарегистрируйтесь, чтобы найти лучшего репетитора!</h3>
+        <p>Пожалуйста, введите данные, необходимые для регистрации!</p>
 
         <form action="newuserregister" method="post">
             <div class="form-group">
@@ -44,10 +44,9 @@
                     <option value="CLIENT">Ученик</option>
                 </select>
             </div>
-<span style="margin-top: 10px">Уже есть аккаунт <a class="linkControl" href="/">Войти здесь</a></span> <br><br>
-            <input type="submit" value="Register" class="btn btn-primary btn-block"><br>
-            <br><h3 style="color:red;">${msg}</h3>
-            <br>
+            <h6 style="color:red;">${msg}</h6>
+<span style="margin-top: 10px">Уже есть аккаунт? <a class="linkControl" href="/">Войти здесь</a></span> <br><br>
+            <input type="submit" value="Register" class="btn btn-primary btn-block">
         </form>
     </div>
 </div>

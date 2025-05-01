@@ -119,7 +119,6 @@
                         <div class="card-body text-center">
                             <h5 class="card-title">Всего студентов</h5>
                             <p class="stat-value text-success">${totalStudents}</p>
-                            <a href="/tutor/students" class="btn btn-success">Перейти</a>
                         </div>
                     </div>
                 </div>
@@ -127,7 +126,7 @@
                     <div class="card dashboard-card stat-card bg-light">
                         <div class="card-body text-center">
                             <h5 class="card-title">Рейтинг</h5>
-                            <p class="stat-value text-warning">${rating}/5.0</p>
+                            <p class="stat-value text-warning">${rating}</p>
                             <a href="/tutor/reviews" class="btn btn-warning">Отзывы</a>
                         </div>
                     </div>
