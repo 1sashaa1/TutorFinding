@@ -20,7 +20,7 @@ public class Review {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "teacher_id", nullable = false)
-    private User teacher;
+    private Tutors teacher;
 
     @Column(name = "rating")
     private Integer rating;
@@ -45,11 +45,11 @@ public class Review {
         this.rating = rating;
     }
 
-    public User getTeacher() {
+    public Tutors getTeacher() {
         return teacher;
     }
 
-    public void setTeacher(User teacher) {
+    public void setTeacher(Tutors teacher) {
         this.teacher = teacher;
     }
 

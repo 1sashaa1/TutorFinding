@@ -4,14 +4,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.jtspringproject.JtSpringProject.dto.userDto;
 import com.jtspringproject.JtSpringProject.dto.userpnDto;
-import com.jtspringproject.JtSpringProject.services.clientService;
+import com.jtspringproject.JtSpringProject.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +21,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import com.jtspringproject.JtSpringProject.models.User;
-import com.jtspringproject.JtSpringProject.services.userService;
 import com.jtspringproject.JtSpringProject.models.Roles;
 
 import javax.persistence.EntityNotFoundException;
@@ -34,13 +31,29 @@ import javax.validation.Valid;
 public class AdminController {
 
 	private final userService userService;
-	private final com.jtspringproject.JtSpringProject.services.clientService clientService;
+	private final tutorService tutorService;
+	private final scheduleService scheduleService;
+	private final lessonService lessonService;
+	private final scheduleService scheduleSlotService;
+	private final subjectService subjectService;
+	private final clientService clientService;
+	private  final paymentService paymentService;
+	private final reviewService reviewService;
+	private final AnalyticsService analyticsService;
 
 	@Autowired
-	public AdminController(userService userService, clientService clientService) {
+	public AdminController(userService userService, com.jtspringproject.JtSpringProject.services.tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.lessonService lessonService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, clientService clientService, com.jtspringproject.JtSpringProject.services.paymentService paymentService, com.jtspringproject.JtSpringProject.services.reviewService reviewService, AnalyticsService analyticsService) {
 		this.userService = userService;
-		this.clientService = clientService;
-	}
+        this.tutorService = tutorService;
+        this.scheduleService = scheduleService;
+        this.lessonService = lessonService;
+        this.scheduleSlotService = scheduleSlotService;
+        this.subjectService = subjectService;
+        this.clientService = clientService;
+        this.paymentService = paymentService;
+        this.reviewService = reviewService;
+        this.analyticsService = analyticsService;
+    }
 	
 	@GetMapping("/index")
 	public String index(Model model) {
@@ -75,6 +88,18 @@ public class AdminController {
 				.filter(user -> Roles.CLIENT.equals(user.getRole()))
 				.collect(Collectors.toList());
 		System.out.println("clients: "+ clients);
+		mView.addObject("clients", clients);
+		return mView;
+	}
+
+	@GetMapping("tutors")
+	public ModelAndView getTutorsDetail() {
+		ModelAndView mView = new ModelAndView("displayTutorsForAdmin");
+		List<User> users = this.userService.getUsers();
+		System.out.println("users: "+ users);
+		List<User> clients = users.stream()
+				.filter(user -> Roles.TEACHER.equals(user.getRole()))
+				.collect(Collectors.toList());
 		mView.addObject("clients", clients);
 		return mView;
 	}
@@ -213,6 +238,52 @@ public class AdminController {
 			System.out.println("Exception:"+e);
 		}
 		return "redirect:index";
+	}
+	@GetMapping("/statistics")
+	public ModelAndView getStatistics() {
+		ModelAndView mView = new ModelAndView("admin_statistics");
+		List<User> users = this.userService.getUsers();
+		System.out.println("users: "+ users);
+		List<User> clients = users.stream()
+				.filter(user -> Roles.CLIENT.equals(user.getRole()))
+				.collect(Collectors.toList());
+
+		Map<Integer, Long> distribution = reviewService.getRatingDistribution();
+		long[] ratingData = new long[5];
+		for (int i = 1; i <= 5; i++) {
+			ratingData[5-i] = distribution.getOrDefault(i, 0L); // Порядок от 5 до 1 звезды
+		}
+
+		Map<String, Long> subjects = analyticsService.getPopularSubjects(10);
+
+		List<String> labels = new ArrayList<>();
+		List<Long> values = new ArrayList<>();
+
+		subjects.forEach((key, value) -> {
+			labels.add(key);
+			values.add(value);
+		});
+
+		Map<String, Object> popularSubjects = new HashMap<>();
+		popularSubjects.put("labels", labels);
+		popularSubjects.put("values", values);
+
+		mView.addObject("clients", clients);
+		mView.addObject("totalUsers", userService.getTotalUsers());
+		mView.addObject("activeTutors", tutorService.getActiveTutorsCount());
+		mView.addObject("avgRating", reviewService.getAverageRating());
+		//mView.addObject("avgSessionTime", analyticsService.getAverageSessionTime());
+		//mView.addObject("avgLogins", analyticsService.getAverageLoginsPerWeek());
+		mView.addObject("userGrowthPercent", analyticsService.getUserGrowthPercent());
+		mView.addObject("tutorsWithReviews", reviewService.getTutorsWithReviewsCount());
+		mView.addObject("totalReviews", reviewService.getTotalReviewsCount());
+
+		mView.addObject("popularSubjects", popularSubjects);
+		mView.addObject("ratingData", ratingData);
+		//mView.addObject("activityData", analyticsService.getWeeklyActivity());
+		//mView.addObject("registrationData", analyticsService.getRegistrationStats(period));
+		//mView.addObject("tutorStats", analyticsService.getTutorDetailedStats());
+		return mView;
 	}
 
 }

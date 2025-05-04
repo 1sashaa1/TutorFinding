@@ -137,4 +137,14 @@ public class lessonDao{
         return count.intValue();
     }
 
+    @Transactional
+    public boolean existsByScheduleSlotId(Long slotId) {
+        Session session = sessionFactory.getCurrentSession();
+        String hql = "SELECT COUNT(*) FROM Lesson l WHERE l.scheduleSlot.id = :slotId";
+        Long count = (Long) session.createQuery(hql)
+                .setParameter("slotId", slotId)
+                .uniqueResult();
+        return count > 0;
+    }
+
 }

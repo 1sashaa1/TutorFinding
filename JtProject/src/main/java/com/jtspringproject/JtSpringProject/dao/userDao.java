@@ -1,5 +1,9 @@
 package com.jtspringproject.JtSpringProject.dao;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.List;
 
 import javax.persistence.NoResultException;
@@ -107,6 +111,27 @@ public class userDao {
 			System.out.println(e.getMessage());
 			return null; // обрабатываем все другие исключения
 		}
+	}
+	@Transactional
+	public long countUsers() {
+	try (Session session = sessionFactory.openSession()) {
+		Query<Long> query = session.createQuery("SELECT COUNT(u.id) FROM USERS u", Long.class);
+		return query.getSingleResult();
+	}
+	}
+	@Transactional
+	public long countUsersInMonth(YearMonth month) {
+		LocalDate startDate = month.atDay(1);
+		LocalDate endDate = month.atEndOfMonth();
+
+		LocalDateTime start = startDate.atStartOfDay();
+		LocalDateTime end = endDate.atTime(LocalTime.MAX);
+
+		return sessionFactory.getCurrentSession()
+				.createQuery("SELECT COUNT(u) FROM USERS u WHERE u.created_at BETWEEN :start AND :end", Long.class)
+				.setParameter("start", start)
+				.setParameter("end", end)
+				.uniqueResult();
 	}
 
 

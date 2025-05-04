@@ -40,9 +40,10 @@ public class TutorController {
     private final subjectService subjectService;
     private final reviewService reviewService;
     private final lessonService lessonService;
+    private final YouTubeService youTubeService;
 
     @Autowired
-    public TutorController(userService userService, tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, com.jtspringproject.JtSpringProject.services.reviewService reviewService, lessonService lessonService) {
+    public TutorController(userService userService, tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, com.jtspringproject.JtSpringProject.services.reviewService reviewService, lessonService lessonService, YouTubeService youTubeService) {
         this.tutorService = tutorService;
         this.userService = userService;
         this.scheduleService = scheduleService;
@@ -50,6 +51,7 @@ public class TutorController {
         this.subjectService = subjectService;
         this.reviewService = reviewService;
         this.lessonService = lessonService;
+        this.youTubeService = youTubeService;
     }
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -58,21 +60,22 @@ public class TutorController {
     public String showTutorRegistrationForm(Model model) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userService.getUserByUsername(username);
-
+        List<Subject> allSubjects = subjectService.getAllSubjects();
         if (currentUser != null) {
             int userId = currentUser.getId();
 
             Tutors tutor = tutorService.getTutorId(userId);
-            int totalStudents = lessonService.countUniqueStudentsByTutor(tutor.getId());
-            double rating = reviewService.getAverageTeacherRating(tutor.getId());
             if (tutor != null) {
+                int totalStudents = lessonService.countUniqueStudentsByTutor(tutor.getId());
+                double rating = reviewService.getAverageTeacherRating(tutor.getId());
                 model.addAttribute("tutor", tutor);
                 model.addAttribute("username", username);
                 model.addAttribute("totalStudents", totalStudents);
                 model.addAttribute("rating", String.format("%.1f", rating));
                 return "tutor_dashboard";
             } else {
-                return "tutor_inform";
+                model.addAttribute("allSubjects", allSubjects);
+                return "redirect:/registerTutor";
             }
         } else {
             // Если текущий пользователь не найден
@@ -80,42 +83,63 @@ public class TutorController {
         }
     }
 
-    @RequestMapping(value = "/registerTutor", method = RequestMethod.POST)
-    public ModelAndView registerTutor(@ModelAttribute Tutors tutors) {
+    @GetMapping("/registerTutor")
+    public String showRegistrationForm(Model model) {
+        model.addAttribute("tutor", new Tutors());
+        model.addAttribute("allSubjects", subjectService.getAllSubjects());
+        return "tutor_inform";
+    }
+
+    @PostMapping("/registerTutor")
+    public ModelAndView registerTutor(
+            @ModelAttribute("tutor") Tutors tutor,
+            @RequestParam("subjectId") Long subjectId,
+            @RequestParam("experience") int experience,
+            @RequestParam("education") String education,
+            @RequestParam("rate") int rate,
+            @RequestParam("preferredFormat") String preferredFormat,
+            RedirectAttributes redirectAttributes) {
+
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.getUserByUsername(username);
+        ModelAndView mav = new ModelAndView();
 
-        boolean exists = tutorService.checkTutorExists(user.getId());
-
-        if (exists) {
-            System.out.println("Репетитор с таким id уже записан: " + tutors.getUser().getUsername());
-            ModelAndView mView = new ModelAndView("tutor_dashboard");
-            mView.addObject("username", username);
-            mView.addObject("msg", "Данные о Вас уже записаны в системе!");
-            return mView;
-        } else {
-            try {
-                tutors.setUser(user);  // Устанавливаем пользователя в Tutors
-                tutorService.addTutor(tutors);  // Сохраняем Tutors
-                user.setTutor(tutors);  // Устанавливаем Tutors в User
-
-                // 🔐 ШИФРОВАНИЕ ПАРОЛЯ
-                String encodedPassword = passwordEncoder.encode(user.getPassword());
-                user.setPassword(encodedPassword);
-
-                userService.addUser(user);  // Обновляем User
-
-                ModelAndView mView = new ModelAndView("tutor_dashboard");
-                mView.addObject("msg", "Вы успешно зарегистрировали свои данные!");
-                mView.addObject("username", username);
-                System.out.println("Новые данные о репетиторе созданы: " + tutors.getUser().getUsername());
-                return mView;
-            } catch (Exception e) {
-                ModelAndView mView = new ModelAndView("tutor_inform");
-                mView.addObject("msg", "Ошибка при дополнительной регистрации: " + e.getMessage());
-                return mView;
-            }
+        // Проверка существующей записи
+        if (tutorService.checkTutorExists(user.getId())) {
+            redirectAttributes.addFlashAttribute("error", "Вы уже зарегистрированы как репетитор");
+            mav.setViewName("redirect:/tutor_dashboard");
+            return mav;
         }
+
+        try {
+            // Установка пользователя
+            tutor.setUser(user);
+            user.setTutor(tutor);
+
+            // Установка предмета
+            Subject subject = subjectService.getSubjectById(Math.toIntExact(subjectId));
+            tutor.setSubject(subject);
+
+            // Заполнение дополнительных полей
+            tutor.setExperience(String.valueOf(experience));
+
+            tutor.setEducation(education);
+            tutor.setRate(BigDecimal.valueOf(rate));
+            tutor.setPreferredFormat(PreferredFormat.valueOf(preferredFormat));
+
+            // Сохранение
+            tutorService.addTutor(tutor);
+
+            redirectAttributes.addFlashAttribute("success", "Регистрация успешно завершена!");
+            mav.setViewName("redirect:/tutor_inform");
+
+        } catch (Exception e) {
+            mav.addObject("error", "Ошибка регистрации: " + e.getMessage());
+            mav.addObject("allSubjects", subjectService.getAllSubjects());
+            mav.setViewName("redirect:/tutor_inform");
+        }
+
+        return mav;
     }
 
     // Страница успешной регистрации
@@ -149,8 +173,11 @@ public class TutorController {
 
         // Загружаем расписание
         List<ScheduleSlot> slots = scheduleSlotService.getSlotsByTutor(tutor);
-        System.out.println("Расписание преподавателя -- " + slots);
-        model.addAttribute("slots", slots);
+        List<ScheduleSlot> availableSlots = slots.stream()
+                .filter(ScheduleSlot::isAvailable)
+                .collect(Collectors.toList());
+        System.out.println("Расписание преподавателя -- " + availableSlots);
+        model.addAttribute("availableSlots", availableSlots);
 
         return "tutorProfileDisplay";
     }
@@ -171,6 +198,7 @@ public class TutorController {
             tutorService.addTutor(tutor);
         } catch (IOException e) {
             e.printStackTrace();
+            return "redirect:/403";
         }
         return "redirect:/tutorProfileDisplay"; // Обновляем страницу
     }
@@ -185,6 +213,7 @@ public class TutorController {
             @RequestParam("education") String education,
             @RequestParam("preferredFormat") String preferredFormat,
             @RequestParam("availableTimes") String availableTimesJson,
+            @RequestParam("youtubeChannelId") String youtubeChannelId,
             Principal principal, Model model,
             RedirectAttributes redirectAttributes) {
         try {
@@ -204,16 +233,15 @@ public class TutorController {
             // Обновляем предмет
             Subject subject = subjectService.findById(subjectId);
             tutor.setSubject(subject);
-
-            // Обновляем остальные данные
+            System.out.println("Опыт препода:  " + experience);
             tutor.setRate(BigDecimal.valueOf(rate));
             tutor.setExperience(experience);
             tutor.setEducation(education);
             tutor.setPreferredFormat(PreferredFormat.valueOf(preferredFormat));
-
+            tutor.setYoutubeChannelId(youtubeChannelId);
             // Обновляем расписание
             updateTutorSchedule(tutor, availableTimesJson);
-
+            System.out.println("Опыт препода:  " + experience);
             // Сохраняем изменения
             tutorService.updateTutor(tutor);
 
@@ -244,9 +272,9 @@ public class TutorController {
         List<Map<String, String>> slotsData = mapper.readValue(availableTimesJson,
                 new TypeReference<List<Map<String, String>>>(){});
 
-        // Удаляем старые слоты
-        scheduleService.deleteSlotsByTutor(tutor.getId());
-
+        System.out.println("Удалим старые слоты");
+        scheduleService.deleteAvailableSlotsByTutor(tutor.getId());
+        System.out.println("Удалили старые слоты");
         // Создаем и сохраняем новые слоты
         for (Map<String, String> slotData : slotsData) {
             ScheduleSlot slot = new ScheduleSlot();
@@ -358,6 +386,28 @@ public class TutorController {
         }
         return response;
     }
+    @GetMapping("/tutor/{id}/videos")
+    public String showVideos(@PathVariable Long id, Model model) {
+        Tutors tutor = tutorService.getTutorId(Math.toIntExact(id));
+        model.addAttribute("videos",
+                youTubeService.getChannelVideos(tutor.getYoutubeChannelId(), 5));
+        return "tutor/videos";
+    }
 
+    @GetMapping("/tutor/reviews")
+    public String showTutorReviews(Model model, Principal principal) {
+        User user = userService.getUserByUsername(principal.getName());
+        Tutors tutor = tutorService.getTutorId(user.getId());
+
+        List<Review> reviews = reviewService.getReviewsByTeacher(tutor.getId());
+        int totalStudents = lessonService.countUniqueStudentsByTutor(tutor.getId());
+        double rating = reviewService.getAverageTeacherRating(tutor.getId());
+        model.addAttribute("tutor", tutor);
+        model.addAttribute("totalStudents", totalStudents);
+        model.addAttribute("rating", rating);
+        model.addAttribute("reviews", reviews);
+
+        return "tutor_reviews"; // Имя JSP файла
+    }
 }
 

@@ -15,6 +15,6 @@ public class BackupController {
     public String backup() {
         boolean success = backupService.backupDatabase("root", "1209", "jdbc:mysql://localhost:3306/tutorfind?createDatabaseIfNotExist=true", "D:/backup");
 
-        return success ? "Резервная копия создана успешно." : "Ошибка при создании резервной копии.";
+        return success ? "Ошибка при создании резервной копии." : "Резервная копия создана успешно.";
     }
 }

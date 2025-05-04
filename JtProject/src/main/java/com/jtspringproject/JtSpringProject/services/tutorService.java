@@ -1,6 +1,8 @@
 package com.jtspringproject.JtSpringProject.services;
 
 import com.jtspringproject.JtSpringProject.dao.tutorDao;
+import com.jtspringproject.JtSpringProject.dto.VideoDto;
+import com.jtspringproject.JtSpringProject.dto.YouTubeResponse;
 import com.jtspringproject.JtSpringProject.models.Tutors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,6 +15,9 @@ public class tutorService {
 
     @Autowired
     private tutorDao tutorDao;
+
+    @Autowired
+    private YouTubeService youTubeService;
 
     public void addTutor(Tutors tutor) {
         try {
@@ -46,6 +51,19 @@ public class tutorService {
     }
     public Tutors findById(int id) {
         return this.tutorDao.findById(id);
+    }
+
+    public Tutors getTutorWithVideos(int tutorId) {
+        Tutors tutor = getTutorId(tutorId);
+        if (tutor.getYoutubeChannelId() != null) {
+            List<VideoDto> videos = youTubeService.getChannelVideos(
+                    tutor.getYoutubeChannelId(), 5);
+            tutor.setYoutubeVideos(videos);
+        }
+        return tutor;
+    }
+    public long getActiveTutorsCount() {
+        return tutorDao.countActiveTutors();
     }
 
 }

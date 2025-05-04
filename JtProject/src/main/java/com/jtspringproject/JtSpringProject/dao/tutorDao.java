@@ -1,6 +1,9 @@
 package com.jtspringproject.JtSpringProject.dao;
 
+import com.jtspringproject.JtSpringProject.models.Review;
 import com.jtspringproject.JtSpringProject.models.Tutors;
+import org.hibernate.Hibernate;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,11 +35,22 @@ public class tutorDao {
     }
     @Transactional
     public Tutors getTutorId(int tutorid) {
-        Query query = sessionFactory.getCurrentSession()
-                .createQuery("from Tutors where id = :tutorid");
+        Session session = sessionFactory.getCurrentSession();
+        Query query = session.createQuery("from Tutors where id = :tutorid");
         query.setParameter("tutorid", tutorid);
-        return (Tutors) query.uniqueResult();
+        Tutors tutor = (Tutors) query.uniqueResult();
+
+        if (tutor != null) {
+            Hibernate.initialize(tutor.getReviews());
+            for (Review review : tutor.getReviews()) {
+                Hibernate.initialize(review.getClient());
+            }
+        }
+
+        return tutor;
     }
+
+
 
     @Transactional
     public List<Tutors> getTutors() {
@@ -60,5 +74,14 @@ public class tutorDao {
         Query query = sessionFactory.getCurrentSession().createQuery("from Tutors where id = :id");
         query.setParameter("id",id);
         return (Tutors) query.uniqueResult();
+    }
+
+    @Transactional
+    public long countActiveTutors() {
+        try (Session session = sessionFactory.openSession()) {
+            String hql = "SELECT COUNT(t.id) FROM Tutors t WHERE t.rate != NULL ";
+            Query<Long> query = session.createQuery(hql, Long.class);
+            return query.getSingleResult();
+        }
     }
 }

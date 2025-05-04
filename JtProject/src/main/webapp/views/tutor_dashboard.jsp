@@ -217,9 +217,6 @@
                         </div>
                         <div class="card-body">
                             <div class="d-flex justify-content-around">
-                                <a href="/tutor/schedule/add" class="btn btn-success">
-                                    <i class="fas fa-plus"></i> Добавить занятие
-                                </a>
                                 <a href="/tutorProfileDisplay" class="btn btn-success">
                                     <i class="fas fa-user-edit"></i> Редактировать профиль
                                 </a>

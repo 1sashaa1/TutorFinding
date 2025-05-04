@@ -238,9 +238,11 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <h4>Добро пожаловать, ${username}!</h4>
                 <ul class="navbar-nav ml-auto">
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fas fa-list mr-1"></i> Список
+                    <li class="nav-item"><a class="nav-link" href="/client_lessons"><i class="fas fa-list mr-1"></i> Список
                         занятий</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/profileDisplay"><i class="fas fa-user mr-1"></i>
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home mr-1"></i>
+                        Главная</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/clientProfileDisplay"><i class="fas fa-user mr-1"></i>
                         Профиль</a></li>
                     <li class="nav-item"><a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt mr-1"></i>
                         Выйти</a></li>
@@ -317,22 +319,19 @@
                     <h3><i class="fas fa-star mr-2"></i>Рейтинг и отзывы</h3>
                     <div class="d-flex align-items-center mb-2">
                         <div class="rating-stars">
-                            <%--
                             <c:forEach begin="1" end="5" var="i">
-                                <i class="fas fa-star ${i <= tutor.rating ? 'text-warning' : 'text-secondary'}"></i>
+                                <i class="fas fa-star ${i <= AverageRating ? 'text-warning' : 'text-secondary'}"></i>
                             </c:forEach>
-                            <span class="ml-2">${tutor.rating} (${reviewCount} отзывов)</span>
-                            --%>
+                            <span class="ml-2">${AverageRating} (${ReviewCount} отзывов)</span>
                         </div>
                     </div>
 
                     <div class="reviews-container">
-                        <%--
                         <c:forEach items="${reviews}" var="review">
                             <div class="review-item p-3 mb-3 bg-light rounded">
                                 <div class="d-flex justify-content-between">
-                                    <strong>${review.studentName}</strong>
-                                    <small class="text-muted">${review.date}</small>
+                                    <strong>${review.client.name}</strong>
+                                    <%--<small class="text-muted">${review.date}</small>--%>
                                 </div>
                                 <div class="rating-stars mb-2">
                                     <c:forEach begin="1" end="5" var="i">
@@ -342,38 +341,40 @@
                                 <p>${review.comment}</p>
                             </div>
                         </c:forEach>
-                        --%>
-                        <button class="btn btn-outline-primary">Показать все отзывы</button>
                     </div>
                 </div>
+                <label for="youtubeChannel">YouTube-канал:</label>
+                <input type="text" id="youtubeChannel" name="youtubeChannel" value="${tutor.youtubeChannelId}" />
+
+                <c:if test="${not empty videos}">
+                    <c:forEach var="video" items="${videos}">
+                        <h3>${video.title}</h3>
+                        <p>${video.description}</p>
+                        <iframe width="560" height="315"
+                                src="https://www.youtube.com/embed/${video.videoId}"
+                                frameborder="0" allowfullscreen></iframe>
+                    </c:forEach>
+                </c:if>
+
                 <div class="stats-achievements mb-4">
                     <h3><i class="fas fa-chart-line mr-2"></i>Статистика</h3>
                     <div class="row text-center">
                         <div class="col-md-3">
                             <div class="stat-card p-3 bg-primary text-white rounded">
-                               <%-- <h4>${tutor.lessonsGiven}+</h4> --%>
+                                <h4>${lessonsGiven}4+</h4>
                                 <p>Проведено занятий</p>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="stat-card p-3 bg-success text-white rounded">
-                                <%--<h4>${tutor.studentsCount}+</h4> --%>
+                                <h4>${studentsCount}2+</h4>
                                 <p>Учеников</p>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="stat-card p-3 bg-info text-white rounded">
-                                <%--
-                                <h4>${tutor.responseRate}%</h4>
-                                --%>
+                                <h4>${responseRate}80%</h4>
                                 <p>Скорость ответа</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card p-3 bg-warning text-dark rounded">
-                                <%--
-                                <h4>${tutor.attendanceRate}%</h4> --%>
-                                <p>Посещаемость</p>
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 package com.jtspringproject.JtSpringProject.dao;
 
 import com.jtspringproject.JtSpringProject.models.ScheduleSlot;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,4 +70,21 @@ public class scheduleDao {
         query.setParameter("tutorId", tutorId);
         query.executeUpdate();
     }
+
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public List<ScheduleSlot> findAvailableSlotsByTutor(int tutorId) {
+        Session session = sessionFactory.getCurrentSession();
+        String hql = "FROM ScheduleSlot s WHERE s.tutor.id = :tutorId AND s.available = true";
+        return session.createQuery(hql)
+                .setParameter("tutorId", tutorId)
+                .list();
+    }
+
+    @Transactional
+    public void delete(ScheduleSlot slot) {
+        Session session = sessionFactory.getCurrentSession();
+        session.delete(slot);
+    }
+
 }

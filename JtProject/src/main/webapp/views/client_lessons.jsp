@@ -263,7 +263,9 @@
 
                                 <div class="row">
                                     <div class="col-md-2 text-center">
-                                        <img src="${photos[status.index]}" class="teacher-avatar mb-2" alt="Фото преподавателя">
+                                        <img src="${not empty photos[tutor.id] ? photos[tutor.id] : contextPath.concat('/static/images/default-avatar.jpg')}"
+                                             class="rounded-circle mx-auto" width="100" height="100" alt="Фото"
+                                             onerror="this.src='/static/images/default-avatar.jpg'">
                                         <h6 class="mb-0" data-teacher-id="${lesson.teacher.user.id}">${lesson.teacher.user.name}</h6>
                                         <small class="text-muted">Преподаватель</small>
                                     </div>

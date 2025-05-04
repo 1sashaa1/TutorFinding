@@ -231,6 +231,42 @@
         .profile-link {
             padding-right: 15px; /* Добавляем место для надписи */
         }
+        .video-wrapper {
+            max-width: 500px; /* Можно регулировать */
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: #fff; /* Цвет рамки */
+            padding: 5px; /* Толщина рамки */
+        }
+
+        /* Контейнер для сохранения пропорций */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 соотношение */
+            height: 0;
+            overflow: hidden;
+            background: #000; /* Фон на случай загрузки */
+            border-radius: 6px; /* На 4px меньше, чем у wrapper */
+        }
+
+        /* Стили для самого iframe */
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Эффекты при наведении */
+        .video-wrapper:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -259,6 +295,40 @@
     </nav>
     <main class="main-content">
         <div class="container">
+
+
+            <div class="tutorial-video mb-5">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-play-circle mr-2"></i>Как подобрать идеального репетитора
+                        </h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="video-wrapper mb-4">
+                            <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/UZpVSRMpo0E"
+                                    title="Как выбрать репетитора - пошаговая инструкция"
+                                    frameborder="0"
+                                    allowfullscreen>
+                            </iframe>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-secondary me-2"><i class="fas fa-clock"></i>11:18</span>
+                                    <span class="badge bg-success"><i class="fas fa-eye"></i> Пошаговая инструкция</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showSteps()">
+                                    <i class="fas fa-list-ol mr-1"></i> Текстовая версия
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="search-section">
                 <h1><i class="fas fa-search mr-2"></i>Поиск репетиторов</h1>
                 <div class="row mb-3">
@@ -313,6 +383,47 @@
                     </div>
                 </div>
             </div>
+
+
+            <div id="stepsText" class="card mb-5 d-none">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Текстовая инструкция по подбору репетитора</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Определите цель</div>
+                                Подготовка к экзамену, повышение успеваемости или изучение нового предмета
+                            </div>
+                            <span class="badge bg-primary rounded-pill">1</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Выберите предмет</div>
+                                Используйте фильтр по предметам для быстрого поиска
+                            </div>
+                            <span class="badge bg-primary rounded-pill">2</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Просмотрите информацию и отзывы о преподавателе</div>
+                                Обратите внимание на стиль преподавания каждого репетитора
+                            </div>
+                            <span class="badge bg-primary rounded-pill">3</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Свяжитесь с понравившимся репетитором</div>
+                                Нажмите "Просмотреть профиль" для просмотра полного профиля
+                            </div>
+                            <span class="badge bg-primary rounded-pill">4</span>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+
             <div class="row" id="tutorList">
                 <c:forEach var="tutor" items="${tutors}">
                     <div class="col-md-3 mb-4 tutor-card" data-name="${tutor.user.name}" data-subject="${tutor.subject}" data-rate="${tutor.rate}">
@@ -339,6 +450,14 @@
     </footer>
 </div>
 <script>
+    function showSteps() {
+        const stepsElement = document.getElementById('stepsText');
+        stepsElement.classList.toggle('d-none');
+
+        if (!stepsElement.classList.contains('d-none')) {
+            stepsElement.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
     function filterTutors() {
         let searchName = $('#searchName').val().toLowerCase();
         let filterSubject = $('#filterSubject').val();

@@ -33,25 +33,17 @@
         </div>
         <select name="subjectId" class="form-control" required>
             <option value="">-- Выберите предмет --</option>
-            <option th:each="subject : ${allSubjects}"
-                    th:value="${subject.id}"
-                    th:text="${subject.name}">
-            </option>
+            <c:forEach items="${allSubjects}" var="subject">
+                <option value="${subject.id}">
+                        ${subject.name}
+                </option>
+            </c:forEach>
         </select>
 
 
         <div class="form-group">
             <label for="experience">Опыт преподавания (количество лет)</label>
             <input type="number" id="experience" name="experience" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-            <label for="level">Уровень профессионализма</label>
-            <select id="level" name="level" class="form-control" required>
-                <option value="BEGINNER">Начальный</option>
-                <option value="INTERMEDIATE">Средний</option>
-                <option value="ADVANCED">Продвинутый</option>
-            </select>
         </div>
 
         <div class="form-group">
@@ -62,7 +54,7 @@
 
         <div class="form-group">
             <label for="rate">Часовая ставка</label>
-            <input type="number" id="rate" name="rate" class="form-control" required>
+            <input type="number" id="rate" name="rate" class="form-control" step="5" required>
             <small class="form-text text-muted">Введите Вашу часовую ставку.</small>
         </div>
 
@@ -71,14 +63,8 @@
             <select id="preferredFormat" name="preferredFormat" class="form-control" required>
                 <option value="ONLINE">Онлайн</option>
                 <option value="OFFLINE">Оффлайн</option>
-                <option value="HYBRID">Оба</option>
+                <option value="BOTH">Оба</option>
             </select>
-        </div>
-
-        <div class="form-group">
-            <label for="availableTimes">Доступное время (JSON format)</label>
-            <textarea id="availableTimes" name="availableTimes" class="form-control" rows="3" required></textarea>
-            <small class="form-text text-muted">Provide your available times as a JSON string, e.g. [{"day": "Monday", "time": "10:00-12:00"}]</small>
         </div>
 
         <button type="submit" class="btn btn-primary">Submit</button>

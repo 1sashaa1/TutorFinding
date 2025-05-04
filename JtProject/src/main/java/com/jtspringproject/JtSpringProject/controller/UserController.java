@@ -1,5 +1,6 @@
 package com.jtspringproject.JtSpringProject.controller;
 
+import com.jtspringproject.JtSpringProject.dto.VideoDto;
 import com.jtspringproject.JtSpringProject.models.*;
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -20,6 +21,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import com.jtspringproject.JtSpringProject.services.subjectService;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import org.apache.commons.lang3.EnumUtils;
 
 @Controller
 public class UserController{
@@ -32,12 +36,13 @@ public class UserController{
 	private final subjectService subjectService;
 	private final clientService clientService;
 	private  final paymentService paymentService;
+	private final YouTubeService youTubeService;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-	public UserController(userService userService, tutorService productService, com.jtspringproject.JtSpringProject.services.tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.lessonService lessonService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, com.jtspringproject.JtSpringProject.services.clientService clientService, com.jtspringproject.JtSpringProject.services.paymentService paymentService) {
+	public UserController(userService userService, tutorService productService, com.jtspringproject.JtSpringProject.services.tutorService tutorService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleService, com.jtspringproject.JtSpringProject.services.lessonService lessonService, com.jtspringproject.JtSpringProject.services.scheduleService scheduleSlotService, com.jtspringproject.JtSpringProject.services.subjectService subjectService, com.jtspringproject.JtSpringProject.services.clientService clientService, com.jtspringproject.JtSpringProject.services.paymentService paymentService, YouTubeService youTubeService) {
 		this.userService = userService;
         this.tutorService = tutorService;
         this.scheduleService = scheduleService;
@@ -46,6 +51,7 @@ public class UserController{
         this.subjectService = subjectService;
         this.clientService = clientService;
         this.paymentService = paymentService;
+        this.youTubeService = youTubeService;
     }
 
 
@@ -95,45 +101,49 @@ public class UserController{
 	}
 
 	@RequestMapping(value = "newuserregister", method = RequestMethod.POST)
-	public ModelAndView newUserRegister(@ModelAttribute User user, @RequestParam String role) {
+	public ModelAndView newUserRegister(@ModelAttribute User user,
+										@RequestParam String role,
+										RedirectAttributes redirectAttributes) {
+		if (!EnumUtils.isValidEnum(Roles.class, role)) {
+			ModelAndView mView = new ModelAndView("register");
+			mView.addObject("msg", "Ошибка: выберите корректную роль.");
+			return mView;
+		}
+		user.setRole(Roles.valueOf(role));
+
+		// Проверка длины пароля
+		if (user.getPassword() == null || user.getPassword().length() < 4) {
+			ModelAndView mView = new ModelAndView("register");
+			mView.addObject("msg", "Пароль должен содержать минимум 4 символа");
+			return mView;
+		}
+
+		// Проверка существования пользователя
 		boolean exists = this.userService.checkUserExists(user.getUsername());
 		if (exists) {
 			ModelAndView mView = new ModelAndView("register");
 			mView.addObject("msg", "Пользователь уже существует.");
 			return mView;
 		}
-		else if (!exists) {
-			System.out.println(user.getEmail());
-			try {
-				user.setRole(Roles.valueOf(role));
 
-			} catch (IllegalArgumentException e) {
-				ModelAndView mView = new ModelAndView("register");
-				mView.addObject("msg", "Ошибка: выберите корректную роль.");
-				return mView;
-			}
-			user.setCreated_at(LocalDateTime.now());
+		// Установка даты создания и хеширование пароля
+		user.setCreated_at(LocalDateTime.now());
+		String encodedPassword = passwordEncoder.encode(user.getPassword());
+		user.setPassword(encodedPassword);
 
-			// 🔐
+		// Сохранение пользователя
+		this.userService.addUser(user);
 
-			String encodedPassword = passwordEncoder.encode(user.getPassword());
-			user.setPassword(encodedPassword);
-			this.userService.addUser(user);
-			if (user.getRole() == Roles.CLIENT){
-				Clients client = new Clients();
-				client.setUser(user);
-				clientService.addClient(client);
-			}
-			ModelAndView mView = new ModelAndView("register");
-			mView.addObject("msg", user.getUsername() + " зарегистрирован успешно.");
-			System.out.println("Новый пользователь создан: " + user.getUsername());
-			return new ModelAndView("userLogin");
-		} else {
-			System.out.println("Пользователь с таким именем уже существует: " + user.getUsername());
-			ModelAndView mView = new ModelAndView("register");
-			mView.addObject("msg", user.getUsername() + " уже занят. Выберите другое имя.");
-			return mView;
+		// Создание клиента, если роль CLIENT
+		if (user.getRole() == Roles.CLIENT) {
+			Clients client = new Clients();
+			client.setUser(user);
+			clientService.addClient(client);
 		}
+
+		// Перенаправление с сообщением об успехе
+		redirectAttributes.addFlashAttribute("registrationStatus", "success");
+		return new ModelAndView("redirect:/register?success");
 	}
 
 
@@ -195,7 +205,14 @@ public class UserController{
 	public String updateUser(@RequestParam("userid") int userid,
 							 @RequestParam("username") String username,
 							 @RequestParam("email") String email,
-							 @RequestParam("password") String password) {
+							 @RequestParam("password") String password,
+							 RedirectAttributes redirectAttributes) {
+
+		// Проверка длины пароля
+		if (password.length() < 4) {
+			redirectAttributes.addFlashAttribute("error", "Пароль должен содержать минимум 4 символа");
+			return "redirect:/profileDisplay";
+		}
 
 		User user = userService.getUserById(userid);
 
@@ -206,10 +223,12 @@ public class UserController{
 			user.setPassword(hashedPassword);
 
 			userService.addUser(user);
+			redirectAttributes.addFlashAttribute("success", "Профиль успешно обновлен");
+		} else {
+			redirectAttributes.addFlashAttribute("error", "Пользователь не найден");
 		}
 
-		// Перенаправляем на страницу профиля
-		return "redirect:/profileDisplay";  // обновляем профиль
+		return "redirect:/profileDisplay";
 	}
 
 	@GetMapping("/getTutorInfo/{tutorId}")
@@ -221,14 +240,27 @@ public class UserController{
 		// Получаем tutor по tutorId (или можете использовать user.getId(), если хотите использовать его)
 		Tutors tutor = tutorService.getTutorId(Math.toIntExact(tutorId));
 
-		// Если tutor не найден, перенаправляем на страницу ошибки
 		if (tutor == null) {
 			return "redirect:/error";
+		}
+
+		if (tutor.getYoutubeChannelId() != null && !tutor.getYoutubeChannelId().isEmpty()) {
+
+				List<VideoDto> videos = youTubeService.getChannelVideos(
+						tutor.getYoutubeChannelId(), 5);
+				model.addAttribute("videos", videos);
+				System.out.println("Видео: " + videos);
+				tutor.setYoutubeVideos(videos); // Сохраняем в transient-поле
+		} else {
+			model.addAttribute("error", "YouTube канал не указан");
 		}
 
 		// Добавляем tutor в модель
 		model.addAttribute("tutor", tutor);
 		model.addAttribute("username", username);
+		model.addAttribute("reviews", tutor.getReviews());
+		model.addAttribute("AverageRating", tutor.getAverageRating());
+		model.addAttribute("ReviewCount", tutor.getReviewCount());
 
 		// Обрабатываем фото преподавателя
 		if (tutor.getPhoto() != null) {
@@ -349,7 +381,6 @@ public class UserController{
 			user.setRole(Roles.CLIENT);
 			user.setPassword("1111");
 
-			// 🔐 ШИФРОВАНИЕ ПАРОЛЯ
 			String encodedPassword = passwordEncoder.encode(user.getPassword());
 			user.setPassword(encodedPassword);
 

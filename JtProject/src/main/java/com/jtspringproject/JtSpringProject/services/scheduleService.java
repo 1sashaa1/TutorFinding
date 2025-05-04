@@ -14,6 +14,8 @@ public class scheduleService {
 
     @Autowired
     private scheduleDao scheduleSlotDao;
+    @Autowired
+    private com.jtspringproject.JtSpringProject.dao.lessonDao lessonDao;
 
     public List<ScheduleSlot> getAllSlots() {
         return scheduleSlotDao.getAllSlots();
@@ -51,4 +53,15 @@ public class scheduleService {
             throw new IllegalArgumentException("Время начала должно быть раньше времени окончания");
         }
     }
+
+    public void deleteAvailableSlotsByTutor(int tutorId) {
+        List<ScheduleSlot> availableSlots = scheduleSlotDao.findAvailableSlotsByTutor(tutorId);
+
+        for (ScheduleSlot slot : availableSlots) {
+            if (!lessonDao.existsByScheduleSlotId(slot.getId())) {
+                scheduleSlotDao.delete(slot);
+            }
+        }
+    }
+
 }

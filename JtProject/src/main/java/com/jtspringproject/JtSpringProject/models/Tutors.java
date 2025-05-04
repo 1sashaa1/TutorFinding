@@ -1,5 +1,7 @@
 package com.jtspringproject.JtSpringProject.models;
 
+import com.jtspringproject.JtSpringProject.dto.VideoDto;
+
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -25,6 +27,17 @@ public class Tutors implements Serializable {
     @JoinColumn(name = "subject_id") // имя столбца в таблице tutors
     private Subject subject;
 
+    @Column(name = "youtube_channel")
+    private String youtubeChannelId;
+
+    public String getYoutubeChannelId() {
+        return youtubeChannelId;
+    }
+
+    public void setYoutubeChannelId(String youtubeChannelId) {
+        this.youtubeChannelId = youtubeChannelId;
+    }
+
     @Column(name = "hourly_rate")
     private BigDecimal rate; // Почасовая ставка
     private String experience; // Опыт работы
@@ -45,6 +58,32 @@ public class Tutors implements Serializable {
 
     @OneToMany(mappedBy = "tutor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScheduleSlot> schedule = new ArrayList<>();
+
+    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Review> reviews = new ArrayList<>();
+
+    public double getAverageRating() {
+        if (reviews.isEmpty()) {
+            return 0;  // Или можешь вернуть какое-то значение по умолчанию, например, 0
+        }
+        double totalRating = 0;
+        for (Review review : reviews) {
+            totalRating += review.getRating();  // Суммируем все рейтинги
+        }
+        return totalRating / reviews.size();  // Делим на количество отзывов, чтобы получить среднее
+    }
+    public int getReviewCount() {
+        return reviews.size();  // Возвращаем количество отзывов
+    }
+
+    public List<Review> getReviews() {
+        return reviews;
+    }
+
+    public void setReviews(List<Review> reviews) {
+        this.reviews = reviews;
+    }
+
 
     @Lob
     @Column(name = "photo", columnDefinition = "LONGBLOB")
@@ -112,5 +151,16 @@ public class Tutors implements Serializable {
 
     public void setSchedule(List<ScheduleSlot> schedule) {
         this.schedule = schedule;
+    }
+
+    @Transient
+    private List<VideoDto> youtubeVideos;
+
+    public List<VideoDto> getYoutubeVideos() {
+        return youtubeVideos;
+    }
+
+    public void setYoutubeVideos(List<VideoDto> youtubeVideos) {
+        this.youtubeVideos = youtubeVideos;
     }
 }

@@ -120,6 +120,6 @@ public class Clients implements Serializable {
     public enum PreferredFormat {
         ONLINE,
         OFFLINE,
-        HYBRID
+        BOTH
     }
 }

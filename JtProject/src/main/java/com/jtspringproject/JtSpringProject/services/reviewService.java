@@ -11,6 +11,8 @@ import javax.transaction.Transactional;
 import java.util.List;
 import javax.transaction.Transactional;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -49,7 +51,7 @@ public class reviewService {
 
         Lesson lesson = lessonService.getLesson(lessonId);
         review.setClient(userService.getUser(clientId));
-        review.setTeacher(lesson.getTeacher().getUser());
+        review.setTeacher(lesson.getTeacher());
 
         reviewDAO.saveReview(review);
         return review;
@@ -74,6 +76,23 @@ public class reviewService {
     @Transactional
     public double getAverageTeacherRating(int teacherId) {
         return reviewDAO.getAverageRatingForTeacher(teacherId);
+    }
+    @Transactional
+    public double getAverageRating() {
+        Double avg = reviewDAO.getAverageRating();
+        return avg != null ? avg : 0.0;
+    }
+    @Transactional
+    public Map<Integer, Long> getRatingDistribution() {
+        return reviewDAO.getRatingDistribution();
+    }
+    @Transactional
+    public int getTotalReviewsCount() {
+        return reviewDAO.getTotalReviewsCount();
+    }
+    @Transactional
+    public long getTutorsWithReviewsCount() {
+        return reviewDAO.getTutorsWithReviewsCount();
     }
 
 }

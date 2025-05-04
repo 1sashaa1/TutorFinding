@@ -80,4 +80,7 @@ public class userService {
 	public User getUserById(int id) {
 		return userDao.getUserById(id);
 	}
+	public long getTotalUsers() {
+		return userDao.countUsers();
+	}
 }

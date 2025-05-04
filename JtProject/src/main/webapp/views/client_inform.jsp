@@ -52,7 +52,7 @@
             <select id="preferredFormat" name="preferredFormat" class="form-control" required>
                 <option value="ONLINE">Online</option>
                 <option value="OFFLINE">Offline</option>
-                <option value="HYBRID">Both</option>
+                <option value="BOTH">Both</option>
             </select>
         </div>
 

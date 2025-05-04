@@ -1,0 +1,33 @@
+services:
+  db:
+    image: mysql:8.4.5
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1209
+      MYSQL_DATABASE: tutorfind  # Используем существующую БД
+    ports:
+      - "3306:3306"  # Порт 3307 на хосте → 3306 в контейнере
+    volumes:
+      - mysql_data:/var/lib/mysql  # Для сохранения данных
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build: .
+    container_name: tutorfind_app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/tutorfind?useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1209
+
+volumes:
+  mysql_data:

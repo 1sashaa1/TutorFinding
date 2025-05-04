@@ -35,8 +35,7 @@
 				<ul class="navbar-nav mr-auto"></ul>
 				<ul class="navbar-nav">
 					<li class="nav-item active"><a class="nav-link" href="/admin/">Главная</a></li>
-					<li class="nav-item active"><a class="nav-link" href="/admin/reporting">Отчётность</a></li>
-					<li class="nav-item active"><a class="nav-link" href="/admin/call">Связаться</a></li>
+					<li class="nav-item active"><a class="nav-link" href="/admin/statistics">Отчётность</a></li>
 					<li class="nav-item active"><a class="nav-link" href="/admin/logout">Выйти</a></li>
 
 				</ul>
@@ -53,7 +52,7 @@
 			<div class="col-sm-3 pt-4">
 				<div class="card border border-info" style="background-color: white;">
 					<div class="card-body text-center">
-						<h4 class="card-title">Статистика</h4>
+						<h4 class="card-title">Аналитика</h4>
 						<p>---------------------------------------------</p>
 						<p class="card-text">Получите статистику о работе системы здесь.</p>
 						<a href="/admin/statistics" class="card-link btn btn-primary">Перейти</a>

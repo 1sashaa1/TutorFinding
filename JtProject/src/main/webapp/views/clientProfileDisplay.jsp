@@ -147,7 +147,7 @@
                                 <option value="">Выберите формат</option>
                                 <option value="ONLINE" ${client.preferred_format == 'ONLINE' ? 'selected' : ''}>Онлайн</option>
                                 <option value="OFFLINE" ${client.preferred_format == 'OFFLINE' ? 'selected' : ''}>Оффлайн</option>
-                                <option value="HYBRID" ${client.preferred_format == 'HYBRID' ? 'selected' : ''}>Оба формата</option>
+                                <option value="BOTH" ${client.preferred_format == 'BOTH' ? 'selected' : ''}>Оба формата</option>
                             </select>
                             <div class="invalid-feedback">
                                 Пожалуйста, выберите предпочитаемый формат
